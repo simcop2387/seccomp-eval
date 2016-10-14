@@ -130,7 +130,7 @@ sub get_seccomp {
       } while ($q <= $b);
 
       $rule_add->(open => [1, '==', $mode]);
-      $rule_add->(openat => [1, '==', $mode]);
+      $rule_add->(openat => [2, '==', $mode]);
       #print " => $mode\n";
     }
 
