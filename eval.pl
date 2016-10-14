@@ -25,8 +25,8 @@ use DateTime;
 use Date::Parse;
 use Time::Piece;
 use Time::HiRes;
-use URI;
-use URI::Encode;
+#use URI;
+#use URI::Encode;
 # use Rand::MersenneTwister;
 use Mojo::DOM;
 use Mojo::DOM::HTML;
@@ -271,11 +271,11 @@ use Storable qw/nfreeze/; nfreeze([]); #Preload Nfreeze since it's loaded on dem
 		and
 	setrlimit(RLIMIT_NPROC, 1,1)
 		and
-	setrlimit(RLIMIT_NOFILE, 5,5)
+	setrlimit(RLIMIT_NOFILE, 20,20)
 		and
-	setrlimit(RLIMIT_OFILE, 5,5)
+	setrlimit(RLIMIT_OFILE, 20,20)
 		and
-	setrlimit(RLIMIT_OPEN_MAX,5,5)
+	setrlimit(RLIMIT_OPEN_MAX,20,20)
 		and
 	setrlimit(RLIMIT_LOCKS, 0,0)
 		and
@@ -346,7 +346,7 @@ get_seccomp();
 	sub perl_code {
 		my( $code ) = @_;
 		local $@;
-		local @INC = ('.');
+		local @INC = ('/perl5/lib/perl5/');
 
 		local $_;
 
