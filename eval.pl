@@ -10,6 +10,8 @@ use BSD::Resource;
 use File::Glob;
 use POSIX;
 use Cwd;
+use List::Util qw/reduce/;
+use Algorithm::Permute;
 
 use List::Util;
 use List::MoreUtils;
@@ -56,6 +58,7 @@ require MooseX::Declare;
 require "utf8_heavy.pl";
 use arybase;
 use Errno;
+use Algorithm::Permute;
 
 require indirect;
 
@@ -107,12 +110,25 @@ sub get_seccomp {
     ## MMAP? I don't know what it's being used for exactly.  I'll leave it out and see what happens
     # $rule_add->(mmap => );
 
-    # Open files, but only as read only
-    $rule_add->(open => [1, '==', &POSIX::O_RDONLY]);
+    # These are the allowed modes on open, allow that to work in any combo
+    my ($O_DIRECTORY, $O_CLOEXEC) = (00200000, 02000000);
+    my @allowed_open_modes = (&POSIX::O_RDONLY, &POSIX::O_NONBLOCK, $O_DIRECTORY, $O_CLOEXEC);
+
+    for my $size (1..@allowed_open_modes) {
+      my $p=Algorithm::Permute->new(\@allowed_open_modes, $size);
+
+      # We're using alg::permute to generate every possible combo of modes that are allowed here
+      while (my @opts = $p->next()) {
+        my $mode = reduce {$a | $b} @opts;
+        #print Dumper(\@opts, $mode);
+        $rule_add->(open => [1, '==', $mode]);
+      }
+    }
+
     # 4352  ioctl(4, TCGETS, 0x7ffd10963820)  = -1 ENOTTY (Inappropriate ioctl for device)
     $rule_add->(ioctl => [1, '==', 0x5401]); # This happens on opened files for some reason? wtf
 
-    my @blind_syscalls = qw/read exit exit_group brk lseek fstat fcntl stat rt_sigaction geteuid getuid getcwd close/;
+    my @blind_syscalls = qw/read exit exit_group brk lseek fstat fcntl stat rt_sigaction geteuid getuid getcwd close getdents/;
 
     for my $syscall (@blind_syscalls) {
         $rule_add->($syscall);
