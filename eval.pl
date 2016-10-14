@@ -11,7 +11,6 @@ use File::Glob;
 use POSIX;
 use Cwd;
 use List::Util qw/reduce/;
-use Algorithm::Permute;
 
 use List::Util;
 use List::MoreUtils;
@@ -58,7 +57,6 @@ require MooseX::Declare;
 require "utf8_heavy.pl";
 use arybase;
 use Errno;
-use Algorithm::Permute;
 
 require indirect;
 
@@ -114,15 +112,25 @@ sub get_seccomp {
     my ($O_DIRECTORY, $O_CLOEXEC) = (00200000, 02000000);
     my @allowed_open_modes = (&POSIX::O_RDONLY, &POSIX::O_NONBLOCK, $O_DIRECTORY, $O_CLOEXEC);
 
-    for my $size (1..@allowed_open_modes) {
-      my $p=Algorithm::Permute->new(\@allowed_open_modes, $size);
+    # this annoying bitch of code is because Algorithm::Permute doesn't work with newer perls
+    # Also this ends up more efficient.  We skip 0 because it's redundant
+    for my $b (1..(2**@allowed_open_modes) - 1) {
+      my $q = 1;
+      my $mode = 0;
+      #printf "%04b: ", $b;
+      do {
+        if ($q & $b) {
+          my $r = int(log($q)/log(2)+0.5); # get the thing
 
-      # We're using alg::permute to generate every possible combo of modes that are allowed here
-      while (my @opts = $p->next()) {
-        my $mode = reduce {$a | $b} @opts;
-        #print Dumper(\@opts, $mode);
-        $rule_add->(open => [1, '==', $mode]);
-      }
+          $mode |= $allowed_open_modes[$r];
+
+          #print "$r";
+        }
+        $q <<= 1;
+      } while ($q <= $b);
+
+      $rule_add->(open => [1, '==', $mode]);
+      #print " => $mode\n";
     }
 
     # 4352  ioctl(4, TCGETS, 0x7ffd10963820)  = -1 ENOTTY (Inappropriate ioctl for device)
