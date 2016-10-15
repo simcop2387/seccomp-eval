@@ -9,66 +9,7 @@ use Scalar::Util; #Required by Data::Dumper
 use BSD::Resource;
 use File::Glob;
 use POSIX;
-use Cwd;
 use List::Util qw/reduce/;
-
-use List::Util;
-use List::MoreUtils;
-use List::UtilsBy;
-use Data::Munge;
-use Scalar::MoreUtils;
-use Regexp::Common;
-use Encode;
-use Digest::MD5;
-use Digest::SHA;
-use DateTime;
-# use DateTimeX::Easy;
-use Date::Parse;
-use Time::Piece;
-use Time::HiRes;
-#use URI;
-#use URI::Encode;
-# use Rand::MersenneTwister;
-use Mojo::DOM;
-use Mojo::DOM::HTML;
-use Mojo::DOM::CSS;
-#use Mojo::Collection;
-#use YAPE::Regex::Explain;
-
-require Function::Parameters;
-require experimental;
-#require "if.pm";
-#use JSON;
-#use JSON::XS;
-require Cpanel::JSON::XS;
-require JSON::MaybeXS;
-require JSON::XS;
-require JSON;
-
-require Moo;
-require Moo::Object;
-require Moo::Role;
-require Moose;
-require Moose::Role;
-require Method::Generate::Accessor;
-require Method::Generate::Constructor;
-require MooseX::Declare;
-# eval "use MooseX::Declare; class LoadAllMooseXDeclare { has dongs => ( is => ro, isa => 'Int' ); };";
-require "utf8_heavy.pl";
-use arybase;
-use Errno;
-
-require indirect;
-
-eval 'use bigint; use Math::BigInt; 1e1000';
-eval 'use Math::BigFloat; 1.1e1000';
-eval 'use Math::BigRat; 1e1000';
-require autovivification;
-
-{
-my $len = eval "lc 'ẞ'";
-warn $@ if $@;
-}
 
 # save the old stdout, we're going to clobber it soon. STDOUT
 my $oldout;
@@ -130,7 +71,7 @@ sub get_seccomp {
       } while ($q <= $b);
 
       $rule_add->(open => [1, '==', $mode]);
-      $rule_add->(openat => [1, '==', $mode]);
+      $rule_add->(openat => [2, '==', $mode]);
       #print " => $mode\n";
     }
 
@@ -233,9 +174,6 @@ use Carp::Heavy;
 use Storable qw/nfreeze/; nfreeze([]); #Preload Nfreeze since it's loaded on demand
 
 	my $code = do { local $/; <STDIN> };
-
-    # Kill @INC to shorten errors;
-    @INC = ('.');
 
 	# Close every other filehandle we may have open
 	# this is probably legacy code at this point since it was used
@@ -371,7 +309,7 @@ get_seccomp();
 	sub perl_code {
 		my( $code ) = @_;
 		local $@;
-		local @INC = ('/perl5/lib/perl5/');
+		local @INC = map {s|/home/ryan||r} @INC;
 
 		local $_;
 
