@@ -56,7 +56,9 @@ sub get_seccomp {
     #mmap(0x7efedaf11000, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 7, 0x3000) = 0x7efedaf11000
     ## MMAP? I don't know what it's being used for exactly.  I'll leave it out and see what happens
     # Used when loading executable code.  Might need to figure out what to do to make it more secure?
+    # also seems to be used when freeing/allocating large blocks of memory, as you'd expect
     $rule_add->(mmap => );
+    $rule_add->(munmap => );
     $rule_add->(mprotect =>);
 
     # These are the allowed modes on open, allow that to work in any combo
