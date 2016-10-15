@@ -46,8 +46,13 @@ sub get_seccomp {
     $rule_add->(write => [0, '==', 2]); # STDERR
     $rule_add->(write => [0, '==', 1]); # STDOUT
 
+    #mmap(NULL, 2112544, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 7, 0) = 0x7efedad0e000
+    #mprotect(0x7efedad12000, 2093056, PROT_NONE) = 0
+    #mmap(0x7efedaf11000, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 7, 0x3000) = 0x7efedaf11000
     ## MMAP? I don't know what it's being used for exactly.  I'll leave it out and see what happens
-    # $rule_add->(mmap => );
+    # Used when loading executable code.  Might need to figure out what to do to make it more secure?
+    $rule_add->(mmap => );
+    $rule_add->(mprotect =>);
 
     # These are the allowed modes on open, allow that to work in any combo
     my ($O_DIRECTORY, $O_CLOEXEC) = (00200000, 02000000);
@@ -78,7 +83,7 @@ sub get_seccomp {
     # 4352  ioctl(4, TCGETS, 0x7ffd10963820)  = -1 ENOTTY (Inappropriate ioctl for device)
     $rule_add->(ioctl => [1, '==', 0x5401]); # This happens on opened files for some reason? wtf
 
-    my @blind_syscalls = qw/read exit exit_group brk lseek fstat fcntl stat rt_sigaction geteuid getuid getcwd close getdents/;
+    my @blind_syscalls = qw/read exit exit_group brk lseek fstat fcntl stat rt_sigaction geteuid getuid getcwd close getdents getgid getegid/;
 
     for my $syscall (@blind_syscalls) {
         $rule_add->($syscall);
