@@ -11,6 +11,11 @@ use File::Glob;
 use POSIX;
 use List::Util qw/reduce/;
 
+# Modules expected by many evals, load them now to avoid typing in channel
+use Encode qw/encode decode/;
+use IO::String;
+use File::Slurper qw/read_text/;
+
 # save the old stdout, we're going to clobber it soon. STDOUT
 my $oldout;
 my $outbuffer = "";
@@ -55,8 +60,8 @@ sub get_seccomp {
     $rule_add->(mprotect =>);
 
     # These are the allowed modes on open, allow that to work in any combo
-    my ($O_DIRECTORY, $O_CLOEXEC) = (00200000, 02000000);
-    my @allowed_open_modes = (&POSIX::O_RDONLY, &POSIX::O_NONBLOCK, $O_DIRECTORY, $O_CLOEXEC);
+    my ($O_DIRECTORY, $O_CLOEXEC, $O_NOCTTY) = (00200000, 02000000, 00000400);
+    my @allowed_open_modes = (&POSIX::O_RDONLY, &POSIX::O_NONBLOCK, $O_DIRECTORY, $O_CLOEXEC, $O_NOCTTY);
 
     # this annoying bitch of code is because Algorithm::Permute doesn't work with newer perls
     # Also this ends up more efficient.  We skip 0 because it's redundant
@@ -83,7 +88,7 @@ sub get_seccomp {
     # 4352  ioctl(4, TCGETS, 0x7ffd10963820)  = -1 ENOTTY (Inappropriate ioctl for device)
     $rule_add->(ioctl => [1, '==', 0x5401]); # This happens on opened files for some reason? wtf
 
-    my @blind_syscalls = qw/read exit exit_group brk lseek fstat fcntl stat rt_sigaction geteuid getuid getcwd close getdents getgid getegid/;
+    my @blind_syscalls = qw/read exit exit_group brk lseek fstat fcntl stat rt_sigaction rt_sigprocmask geteuid getuid getcwd close getdents getgid getegid getgroups/;
 
     for my $syscall (@blind_syscalls) {
         $rule_add->($syscall);
@@ -325,7 +330,7 @@ get_seccomp();
         {
         local $^O = $os[rand()*@os];
         no strict; no warnings; package main;
-		$code = "use $]; use feature qw/postderef refaliasing lexical_subs postderef_qq signatures/; \"use experimental 'declared_refs'\"; $code";
+		$code = "use $]; use feature qw/postderef refaliasing lexical_subs postderef_qq signatures/; use experimental 'declared_refs'; $code";
 		$ret = eval $code;
         }
 
